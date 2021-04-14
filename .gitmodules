@@ -1,0 +1,4 @@
+[submodule "_proposals"]
+	path = _proposals
+	url = https://github.com/ltcbuddy/lccs_proposals.git
+	branch = main

@@ -1,0 +1,51 @@
+name: main
+on:
+  workflow_dispatch: # allows running this workflow manually from the Actions tab
+  repository_dispatch: # process events sent from the proposals repository
+jobs:
+  regenerate_vetting_data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#triggering-new-workflows-using-a-personal-access-token
+          token: '${{ secrets.PAT_TOKEN }}'
+          submodules: 'recursive'
+      - name: generate-vetting-data
+        uses: actions/github-script@v3.1.1
+        with:
+          script: |
+            github.paginate(github.pulls.list, {
+              owner: '${{ github.repository_owner }}',
+              repo: 'lccs_proposals',
+              state: 'open',
+              base: 'main',
+              sort: 'created',
+              direction: 'asc',
+              per_page: 100
+            })
+            .then(function (pulls) {
+              const prs = pulls
+              .filter(pr => /^[a-zA-Z0-9 ]+$/.test(pr.title) && pr.labels.filter(label => label.name === 'invalid').length == 0)
+              .map(function (pr) {
+                return {
+                  number: pr.number,
+                  html_url: pr.html_url,
+                  title: pr.title,
+                  proposer: pr.user.login,
+                  created_at: pr.created_at,
+                  updated_at: pr.updated_at
+                };
+              });
+              const result = JSON.stringify({ data: prs });
+              console.log(result);
+              const fs = require('fs');
+              fs.writeFileSync('${{ github.workspace }}/_data/vetting.json', result, { encoding: 'utf8', mode: 0o644 });
+            });
+      - name: update-repo
+        run: |
+          git config user.name '${{ github.repository_owner }}'
+          git config user.email '${{ github.repository_owner }}@users.noreply.github.com'
+          git submodule update --remote
+          git add -A
+          git diff-index --quiet HEAD || { git commit -m 'automated main workflow update' && git push origin ${{ github.ref }}; }

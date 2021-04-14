@@ -1,0 +1,20 @@
+safe: true
+encoding: utf-8
+timezone: Etc/UTC
+liquid:
+  error_mode: strict
+  strict_variables: true
+  strict_filters: true
+collections:
+  proposals:
+    output: true
+strict_front_matter: true
+exclude: [ 'README.md', 'LICENSE', '_proposals/README.md', '_proposals/LICENSE' ]
+defaults:
+  - scope:
+      path: ''
+      type: 'proposals'
+    values:
+      layout: 'proposal'
+# todo: remove next line when using a custom domain
+baseurl: 'lccs_site'
